@@ -9,7 +9,7 @@ from controllers import StanleyController
 def path_sin():
     """Generate sinusoidal path along global y axis."""
     s = np.linspace(0, 4 * np.pi, 1000)
-    pos = np.array([2 * np.sin(0.5 * s), 2 * s]).T
+    pos = np.array([2 * np.sin(1 * s), 2 * s]).T
 
     # Calculate yaw angle of path points
     segments = np.diff(pos, axis=0)
@@ -17,6 +17,70 @@ def path_sin():
     path = np.hstack((pos[:-1], yaw.reshape(-1, 1)))
 
     return path
+
+def simulate():
+    dt = 0.5  # Controller frequency
+    t_max = 200  # Max simulation time
+    n_steps = int(t_max / dt)
+    t_vec = np.linspace(0, t_max, n_steps)
+
+    # Controller input
+    path_ref = path_sin()
+    v_ref = 0.2
+
+    # Bicycle model
+    wheelbase = 2
+    delta_max = np.radians(30)
+    model = BicycleModel2WS(delta_max, wheelbase)
+
+    # Controller
+    params = {"wheelbase": wheelbase,
+              "k": 0.8,
+              "k_soft": 2,
+              "k_p": 2}
+    controller = StanleyController(path_ref, v_ref, params)
+
+    # Initialize histories for time, state and inputs
+    t_hist = []
+    state_hist = []
+    inputs_hist = []
+
+    # Initial state and input
+    state = np.array([-4, -2, np.radians(-90), 0.0])
+    inputs = controller.compute_controls(state)
+
+    # Simulate
+    for t in t_vec:
+        t_span = (t, t + dt)
+        t_eval = np.linspace(*t_span, 5)
+
+        sol = solve_ivp(model.kinematics, t_span, state, t_eval=t_eval, args=(inputs, ))
+        state = sol.y[:, -1]
+        inputs = controller.compute_controls(state)
+
+        # Store state, inputs and time for analysis
+        state_hist.append(sol.y)
+        inputs_hist.append(inputs)
+        t_hist.append(sol.t)
+
+        if reached_target(state, path_ref[-1, :2], wheelbase):
+            print("Reached end of path.")
+            break
+
+    state_hist = np.concatenate(state_hist, axis=1)
+    inputs_hist = np.vstack(inputs_hist).T
+    t_hist = np.concatenate(t_hist)
+
+    plot_trajectory(state_hist, path_ref, wheelbase)
+    # plot_state(t_hist, state_hist, v_ref=v_ref)
+
+def reached_target(state, target, wheelbase):
+    pos = state[:2]
+    yaw = state[2]
+    pos_fw = pos + wheelbase * np.array([np.cos(yaw), np.sin(yaw)])  # Position front wheel
+    dist_to_target = np.sqrt(np.sum((pos_fw - target)**2))
+
+    return dist_to_target < 0.05
 
 def plot_trajectory(state, path_ref, L):
     x, y, yaw = state[:3]
@@ -60,25 +124,6 @@ def plot_state(t, state, x_ref=None, y_ref=None, v_ref=None):
     return fig
 
 
-def main():
-    path_ref = path_sin()
-    v_ref = 0.2
-
-    bicycle_1ws = BicycleModel1WS(delta_max=np.radians(30), L=2)
-    bicycle_2ws = BicycleModel2WS(delta_max=np.radians(30), L=2)
-    controller = StanleyController(bicycle_2ws, path_ref, v_ref, 0.8, 0.5)
-
-    n_timesteps = 1000
-    t_span = (0.0, 200.0)
-    t_eval = np.linspace(*t_span, n_timesteps)
-    state_init = np.array([-4, -3, np.radians(-90), 0.0])
-    sol = solve_ivp(controller.dynamics, t_span, state_init, t_eval=t_eval)
-
-    plot_trajectory(sol.y, path_ref, bicycle_1ws.L)
-    # plot_state(sol.t, sol.y, v_ref=v_ref)
-    plt.show()
-
-
-
 if __name__ == "__main__":
-    main()
+    simulate()
+    plt.show()
