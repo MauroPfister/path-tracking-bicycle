@@ -1,0 +1,8 @@
+name: path-tracking-bicycle
+channels:
+  - defaults
+dependencies:
+  - python
+  - numpy
+  - matplotlib
+  - scipy
