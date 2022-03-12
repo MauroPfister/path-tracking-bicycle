@@ -3,6 +3,11 @@
 This is a simple simulation of a bicycle model and a path tracking controller. The path tracking controller 
 consists of a P controller regulating the speed and a Stanley controller for the lateral motion.
 
+## Demo
+```shell
+python main.py
+```
+
 ## Requirements
 
 ### Conda

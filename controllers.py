@@ -29,7 +29,9 @@ class StanleyController:
         path_point_nearest = self.path_ref[id_nearest]  # [x, y, yaw] of nearest path point
 
         # Yaw error term
-        yaw_error = path_point_nearest[2] - yaw # TODO: Normalize angles correctly
+        # TODO: Normalize angles correctly
+        # See: https://stackoverflow.com/a/32266181
+        yaw_error = path_point_nearest[2] - yaw 
 
         # Cross-track error to nearest point on path
         e_ct = np.sqrt(dists[id_nearest])
@@ -42,8 +44,6 @@ class StanleyController:
 
         # Final steering angle output
         steering_angle = yaw_error + dir_ct * np.arctan2(self.k * e_ct, (v + self.k_soft))
-        # print(f"yaw error: {yaw_error}")
-        # print(f"Cross-track error: {np.arctan2(self.k * e_ct, (v + self.k_soft))}")
 
         return steering_angle
 
