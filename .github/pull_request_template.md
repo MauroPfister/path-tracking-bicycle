@@ -1,10 +1,3 @@
----
-name: Feature request
-about: Suggest an idea for this project
-title: 'Context: Your title'
-assignees: ''
-
----
 *Description of feature, bug fix, cleanup or refactor.*
 
 **Changes**
